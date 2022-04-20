@@ -182,7 +182,48 @@ func (fa *FiniteAutomata) Star() *FiniteAutomata {
 	return CreateFiniteAutomata(states, fa.Transitions, fa.InitialState, acceptingStates)
 }
 
-func (fa *FiniteAutomata) RemoveEpsilonTransitions() *FiniteAutomata {
+func (fa *FiniteAutomata) Minimize() *FiniteAutomata {
+	newFA := fa.RemoveEpsilonTransitions()
+
 	//TODO implement
+	return newFA
+}
+
+func (fa *FiniteAutomata) RemoveEpsilonTransitions() *FiniteAutomata {
+	fa.considerEpsilonsToAcceptStates()
+	// Remove epsilon transitions from to state A to state B
+	// by adding every transition from state B to every other state to state A
+	for _, s := range fa.States {
+		for _, toState := range fa.Transitions[s][parser.Epsilon] {
+			for symbol, toStates := range fa.Transitions[toState] {
+				//TODO: append toStates to fa.Transitions[s][symbol]
+				//TODO: recursively consider thereafter epsilon transitions
+				fmt.Println(toState, symbol, toStates)
+			}
+		}
+	}
+
 	return fa
+}
+
+func (fa *FiniteAutomata) considerEpsilonsToAcceptStates() {
+	//epsilon transitions to accept states,
+	//by making states accepting if they have epsilon transitions to accept states
+	for _, s := range fa.States {
+		if _, ok := fa.Transitions[s]; !ok {
+			continue
+		}
+		if _, ok := fa.Transitions[s][parser.Epsilon]; !ok {
+			continue
+		}
+		for _, s2 := range fa.Transitions[s][parser.Epsilon] {
+			if !s2.IsAccepting {
+				continue
+			}
+			s.IsAccepting = true
+			fa.AcceptingStates = append(fa.AcceptingStates, s)
+			// Remove epsilon transition from s to s2
+			//fa.Transitions[s][parser.Epsilon] = append(fa.Transitions[s][parser.Epsilon][:i], fa.Transitions[s][parser.Epsilon][i+1:]...)
+		}
+	}
 }
