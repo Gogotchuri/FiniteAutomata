@@ -11,7 +11,7 @@ func BuildAutomataFromDescription(description string) *FiniteAutomata {
 
 func BuildAutomataFromRegex(regex string) *FiniteAutomata {
 	parseTree := parser.NewParseTree(regex)
-	return buildAutomataFromParseTree(parseTree).RemoveEpsilonTransitions()
+	return buildAutomataFromParseTree(parseTree).Minimize()
 }
 
 func buildAutomataFromParseTree(parseTree *parser.ParseTree) *FiniteAutomata {
