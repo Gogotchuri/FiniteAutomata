@@ -5,7 +5,7 @@ import (
 	"github.com/gogotchuri/FiniteAutomata/parser"
 )
 
-type Transition map[string][]*State
+type Transition map[string]*StateSet
 
 type FiniteAutomata struct {
 	States          []*State //Sort by State.ID
@@ -26,7 +26,7 @@ func createAutomataForLiteral(literal rune) *FiniteAutomata {
 	states := []*State{initialState, acceptingState}
 	transitions := make(map[*State]Transition)
 	transitions[initialState] = make(Transition)
-	transitions[initialState][string(literal)] = []*State{acceptingState}
+	transitions[initialState][string(literal)] = CreateStateSet(acceptingState)
 	return &FiniteAutomata{
 		States:          states,
 		Transitions:     transitions,
@@ -56,9 +56,15 @@ func (fa FiniteAutomata) String() string {
 func (fa FiniteAutomata) countTransitions() int {
 	transitionCount := 0
 	for _, s := range fa.States {
-		for _, t := range fa.Transitions[s] {
-			transitionCount += len(t)
-		}
+		transitionCount += fa.countTransitionsForState(s)
+	}
+	return transitionCount
+}
+
+func (fa FiniteAutomata) countTransitionsForState(state *State) int {
+	transitionCount := 0
+	for _, t := range fa.Transitions[state] {
+		transitionCount += t.Size()
 	}
 	return transitionCount
 }
@@ -78,18 +84,18 @@ func (fa FiniteAutomata) getAcceptingStates() string {
 func (fa FiniteAutomata) getTransitions() string {
 	res := ""
 	for i, state := range fa.States {
-		toAppend := fmt.Sprintf("%d ", state.ID)
+		tc := fa.countTransitionsForState(state)
+		if tc == 0 {
+			res += fmt.Sprintf("%d\n", tc)
+			continue
+		}
+		toAppend := fmt.Sprintf("%d ", tc)
 		for symbol, toStates := range fa.Transitions[state] {
-			for _, s2 := range toStates {
+			for s2 := range toStates.Elements() {
 				toAppend += fmt.Sprintf("%s %d ", symbol, s2.ID)
 			}
 		}
-		if len(toAppend) < 3 {
-			continue
-		}
-		if len(toAppend) > 1 {
-			res += toAppend[:len(toAppend)-1]
-		}
+		res += toAppend[:len(toAppend)-1]
 		if i != len(fa.States)-1 {
 			res += "\n"
 		}
@@ -117,15 +123,21 @@ func (fa *FiniteAutomata) Concat(fa2 *FiniteAutomata) *FiniteAutomata {
 	}
 	for _, s := range fa.States {
 		for symbol, toStates := range fa.Transitions[s] {
-			for _, s2 := range toStates {
-				transitions[s][symbol] = append(transitions[s][symbol], s2)
+			for s2 := range toStates.Elements() {
+				if transitions[s][symbol] == nil {
+					transitions[s][symbol] = CreateEmptyStateSet()
+				}
+				transitions[s][symbol].Add(s2)
 			}
 		}
 	}
 	for _, s := range fa2.States {
 		for symbol, toStates := range fa2.Transitions[s] {
-			for _, s2 := range toStates {
-				transitions[s][symbol] = append(transitions[s][symbol], s2)
+			for s2 := range toStates.Elements() {
+				if transitions[s][symbol] == nil {
+					transitions[s][symbol] = CreateEmptyStateSet()
+				}
+				transitions[s][symbol].Add(s2)
 			}
 		}
 	}
@@ -134,7 +146,10 @@ func (fa *FiniteAutomata) Concat(fa2 *FiniteAutomata) *FiniteAutomata {
 		if _, ok := transitions[s]; !ok {
 			transitions[s] = make(Transition)
 		}
-		transitions[s][parser.Epsilon] = append(transitions[s][parser.Epsilon], fa2.InitialState)
+		if transitions[s][parser.Epsilon] == nil {
+			transitions[s][parser.Epsilon] = CreateEmptyStateSet()
+		}
+		transitions[s][parser.Epsilon].Add(fa2.InitialState)
 	}
 	return CreateFiniteAutomata(states, transitions, initialState, acceptingStates)
 }
@@ -151,20 +166,29 @@ func (fa *FiniteAutomata) Union(a2 *FiniteAutomata) *FiniteAutomata {
 	}
 	for _, s := range fa.States {
 		for symbol, toStates := range fa.Transitions[s] {
-			for _, s2 := range toStates {
-				transitions[s][symbol] = append(transitions[s][symbol], s2)
+			for s2 := range toStates.Elements() {
+				if transitions[s][symbol] == nil {
+					transitions[s][symbol] = CreateEmptyStateSet()
+				}
+				transitions[s][symbol].Add(s2)
 			}
 		}
 	}
 	for _, s := range a2.States {
 		for symbol, toStates := range a2.Transitions[s] {
-			for _, s2 := range toStates {
-				transitions[s][symbol] = append(transitions[s][symbol], s2)
+			for s2 := range toStates.Elements() {
+				if transitions[s][symbol] == nil {
+					transitions[s][symbol] = CreateEmptyStateSet()
+				}
+				transitions[s][symbol].Add(s2)
 			}
 		}
 	}
+	if transitions[fa.InitialState][parser.Epsilon] == nil {
+		transitions[fa.InitialState][parser.Epsilon] = CreateEmptyStateSet()
+	}
 	//Add epsilon transitions from fa initial state to a2 initial state
-	transitions[fa.InitialState][parser.Epsilon] = append(transitions[fa.InitialState][parser.Epsilon], a2.InitialState)
+	transitions[fa.InitialState][parser.Epsilon].Add(a2.InitialState)
 	return CreateFiniteAutomata(states, transitions, fa.InitialState, append(fa.AcceptingStates, a2.AcceptingStates...))
 }
 
@@ -176,7 +200,10 @@ func (fa *FiniteAutomata) Star() *FiniteAutomata {
 		if _, ok := fa.Transitions[s]; !ok {
 			fa.Transitions[s] = make(Transition)
 		}
-		fa.Transitions[s][parser.Epsilon] = append(fa.Transitions[s][parser.Epsilon], fa.InitialState)
+		if fa.Transitions[s][parser.Epsilon] == nil {
+			fa.Transitions[s][parser.Epsilon] = CreateEmptyStateSet()
+		}
+		fa.Transitions[s][parser.Epsilon].Add(fa.InitialState)
 	}
 	acceptingStates = append(acceptingStates, fa.InitialState)
 	return CreateFiniteAutomata(states, fa.Transitions, fa.InitialState, acceptingStates)
@@ -184,7 +211,7 @@ func (fa *FiniteAutomata) Star() *FiniteAutomata {
 
 func (fa *FiniteAutomata) Minimize() *FiniteAutomata {
 	newFA := fa.RemoveEpsilonTransitions()
-
+	//newFA = newFA.RemoveUnreachableStates()
 	//TODO implement
 	return newFA
 }
@@ -194,43 +221,53 @@ func (fa *FiniteAutomata) RemoveEpsilonTransitions() *FiniteAutomata {
 	// Remove epsilon transitions from to state A to state B
 	// by adding every transition from state B to every other state to state A
 	for _, s := range fa.States {
-		for i, toState := range fa.Transitions[s][parser.Epsilon] {
-			if i >= len(fa.Transitions[s][parser.Epsilon]) {
-				fa.Transitions[s][parser.Epsilon] = fa.Transitions[s][parser.Epsilon][:i]
-			} else {
-				fa.Transitions[s][parser.Epsilon] = append(fa.Transitions[s][parser.Epsilon][:i], fa.Transitions[s][parser.Epsilon][i+1:]...)
-			}
-			fa.appendTransition(s, toState, &map[*State]struct{}{})
+		if fa.Transitions[s] == nil {
+			continue
+		}
+		if _, ok := fa.Transitions[s][parser.Epsilon]; !ok {
+			fa.Transitions[s][parser.Epsilon] = CreateEmptyStateSet()
+			continue
+		}
+		if fa.Transitions[s][parser.Epsilon] == nil {
+			continue
+		}
+		for toState := range fa.Transitions[s][parser.Epsilon].Elements() {
+			fa.Transitions[s][parser.Epsilon].Remove(toState)
+			fa.appendTransition(s, toState, CreateEmptyStateSet())
 		}
 	}
 
 	return fa
 }
 
-func (fa *FiniteAutomata) appendTransition(dst *State, src *State, visited *map[*State]struct{}) {
+func (fa *FiniteAutomata) appendTransition(dst *State, src *State, visited *StateSet) {
 	if _, ok := fa.Transitions[dst]; !ok {
 		fa.Transitions[dst] = make(Transition)
 	}
 	// We have already visited this state
-	if _, ok := (*visited)[src]; ok {
+	if visited.Contains(src) {
 		return
 	}
-	(*visited)[src] = struct{}{}
-	newEpsilonTransitions := make([]*State, 0)
+	visited.Add(src)
+	newEpsilonTransitions := CreateEmptyStateSet()
 	for symbol, toStates := range fa.Transitions[src] {
-		for _, s := range toStates {
+		for s := range toStates.Elements() {
 			if symbol == parser.Epsilon && s == dst {
 				continue
 			}
 			if symbol == parser.Epsilon {
 				// We will add further epsilon transitions to this state, so we don't need to add it to the transitions
-				newEpsilonTransitions = append(newEpsilonTransitions, s)
+				newEpsilonTransitions.Add(s)
 			} else {
-				fa.Transitions[dst][symbol] = append(fa.Transitions[dst][symbol], s)
+				if _, ok := fa.Transitions[dst][symbol]; !ok {
+					fa.Transitions[dst][symbol] = CreateStateSet(s)
+				} else {
+					fa.Transitions[dst][symbol].Add(s)
+				}
 			}
 		}
 	}
-	for _, src = range newEpsilonTransitions {
+	for src = range newEpsilonTransitions.Elements() {
 		fa.appendTransition(dst, src, visited)
 	}
 }
@@ -246,7 +283,7 @@ func (fa *FiniteAutomata) considerEpsilonsToAcceptStates() {
 		if _, ok := fa.Transitions[s][parser.Epsilon]; !ok {
 			continue
 		}
-		for _, s2 := range fa.Transitions[s][parser.Epsilon] {
+		for s2 := range fa.Transitions[s][parser.Epsilon].Elements() {
 			if !s2.IsAccepting || s.IsAccepting {
 				continue
 			}
@@ -261,3 +298,32 @@ func (fa *FiniteAutomata) considerEpsilonsToAcceptStates() {
 		fa.considerEpsilonsToAcceptStates()
 	}
 }
+
+/*
+func (fa FiniteAutomata) RemoveUnreachableStates() *FiniteAutomata {
+	// Remove unreachable states
+	// by removing all states that are not reachable from the initial state
+	// by performing a depth first search
+	visited := make(map[*State]struct{})
+	dfs(fa.InitialState, &visited)
+	newStates := make([]*State, 0)
+	for _, s := range fa.States {
+		if _, ok := visited[s]; ok {
+			newStates = append(newStates, s)
+		}
+	}
+	newTransitions := make(Transition)
+	for _, s := range newStates {
+		newTransitions[s] = make(map[parser.Symbol][]*State)
+		for symbol, toStates := range fa.Transitions[s] {
+			newTransitions[s][symbol] = make([]*State, 0)
+			for _, s2 := range toStates {
+				if _, ok := visited[s2]; ok {
+					newTransitions[s][symbol] = append(newTransitions[s][symbol], s2)
+				}
+			}
+		}
+	}
+	return CreateFiniteAutomata(newStates, newTransitions, fa.InitialState, fa.AcceptingStates)
+}
+*/

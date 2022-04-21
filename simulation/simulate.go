@@ -36,26 +36,30 @@ func (fa *FiniteAutomata) run(input string, currentState *State, acceptStates []
 	if currentState.IsAccepting && len(input) == 0 {
 		return true
 	}
-	var nextStates, epsilonStates []*State
+	var nextStates, epsilonStates *StateSet
 	//Get next states, given the current state and the input
 	if len(input) > 0 { //If input is empty we will just get epsilon transitions
 		nextStates = fa.Transitions[currentState][string(input[0])]
 	}
 	epsilonStates = fa.Transitions[currentState][parser.Epsilon]
 	//If there are no next states, return false
-	if len(nextStates) == 0 && len(epsilonStates) == 0 {
+	if (nextStates == nil || nextStates.IsEmpty()) && (epsilonStates == nil || epsilonStates.IsEmpty()) {
 		return false
 	}
-	//Try to run the next states
-	for _, nextState := range nextStates {
-		if fa.run(input[1:], nextState, acceptStates) {
-			return true
+	if epsilonStates != nil {
+		//Try to run the epsilon states
+		for epsilonState := range epsilonStates.Elements() {
+			if fa.run(input, epsilonState, acceptStates) {
+				return true
+			}
 		}
 	}
-	//Try to run the epsilon states
-	for _, epsilonState := range epsilonStates {
-		if fa.run(input, epsilonState, acceptStates) {
-			return true
+	if nextStates != nil {
+		//Try to run the next states
+		for nextState := range nextStates.Elements() {
+			if fa.run(input[1:], nextState, acceptStates) {
+				return true
+			}
 		}
 	}
 	//If we reach this point, we have failed to accept the input in the current state, return false
