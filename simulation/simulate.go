@@ -1,8 +1,8 @@
 package simulation
 
 import (
-	"FiniteAutomata/parser"
 	"fmt"
+	"github.com/gogotchuri/FiniteAutomata/parser"
 	"strings"
 )
 

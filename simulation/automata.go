@@ -1,8 +1,8 @@
 package simulation
 
 import (
-	"FiniteAutomata/parser"
 	"fmt"
+	"github.com/gogotchuri/FiniteAutomata/parser"
 )
 
 type Transition map[string][]*State
@@ -194,21 +194,51 @@ func (fa *FiniteAutomata) RemoveEpsilonTransitions() *FiniteAutomata {
 	// Remove epsilon transitions from to state A to state B
 	// by adding every transition from state B to every other state to state A
 	for _, s := range fa.States {
-		for _, toState := range fa.Transitions[s][parser.Epsilon] {
-			for symbol, toStates := range fa.Transitions[toState] {
-				//TODO: append toStates to fa.Transitions[s][symbol]
-				//TODO: recursively consider thereafter epsilon transitions
-				fmt.Println(toState, symbol, toStates)
+		for i, toState := range fa.Transitions[s][parser.Epsilon] {
+			if i >= len(fa.Transitions[s][parser.Epsilon]) {
+				fa.Transitions[s][parser.Epsilon] = fa.Transitions[s][parser.Epsilon][:i]
+			} else {
+				fa.Transitions[s][parser.Epsilon] = append(fa.Transitions[s][parser.Epsilon][:i], fa.Transitions[s][parser.Epsilon][i+1:]...)
 			}
+			fa.appendTransition(s, toState, &map[*State]struct{}{})
 		}
 	}
 
 	return fa
 }
 
+func (fa *FiniteAutomata) appendTransition(dst *State, src *State, visited *map[*State]struct{}) {
+	if _, ok := fa.Transitions[dst]; !ok {
+		fa.Transitions[dst] = make(Transition)
+	}
+	// We have already visited this state
+	if _, ok := (*visited)[src]; ok {
+		return
+	}
+	(*visited)[src] = struct{}{}
+	newEpsilonTransitions := make([]*State, 0)
+	for symbol, toStates := range fa.Transitions[src] {
+		for _, s := range toStates {
+			if symbol == parser.Epsilon && s == dst {
+				continue
+			}
+			if symbol == parser.Epsilon {
+				// We will add further epsilon transitions to this state, so we don't need to add it to the transitions
+				newEpsilonTransitions = append(newEpsilonTransitions, s)
+			} else {
+				fa.Transitions[dst][symbol] = append(fa.Transitions[dst][symbol], s)
+			}
+		}
+	}
+	for _, src = range newEpsilonTransitions {
+		fa.appendTransition(dst, src, visited)
+	}
+}
+
 func (fa *FiniteAutomata) considerEpsilonsToAcceptStates() {
 	//epsilon transitions to accept states,
 	//by making states accepting if they have epsilon transitions to accept states
+	addsAccepted := false
 	for _, s := range fa.States {
 		if _, ok := fa.Transitions[s]; !ok {
 			continue
@@ -217,13 +247,17 @@ func (fa *FiniteAutomata) considerEpsilonsToAcceptStates() {
 			continue
 		}
 		for _, s2 := range fa.Transitions[s][parser.Epsilon] {
-			if !s2.IsAccepting {
+			if !s2.IsAccepting || s.IsAccepting {
 				continue
 			}
+			addsAccepted = true
 			s.IsAccepting = true
 			fa.AcceptingStates = append(fa.AcceptingStates, s)
 			// Remove epsilon transition from s to s2
 			//fa.Transitions[s][parser.Epsilon] = append(fa.Transitions[s][parser.Epsilon][:i], fa.Transitions[s][parser.Epsilon][i+1:]...)
 		}
+	}
+	if addsAccepted {
+		fa.considerEpsilonsToAcceptStates()
 	}
 }

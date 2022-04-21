@@ -7,7 +7,7 @@ func NewParseTree(regex string) *ParseTree {
 	return createRegexParseTree(regex)
 }
 
-//TODO operator precedence (*, ., |)
+//operator precedence (*, ., |)
 //Recursive function to create the parse tree
 func createRegexParseTree(regex string) *ParseTree {
 	//Remove parenthesis if whole regex is enclosed in them

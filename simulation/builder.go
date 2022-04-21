@@ -1,7 +1,7 @@
 package simulation
 
 import (
-	"FiniteAutomata/parser"
+	"github.com/gogotchuri/FiniteAutomata/parser"
 )
 
 func BuildAutomataFromDescription(description string) *FiniteAutomata {

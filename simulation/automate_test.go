@@ -51,6 +51,7 @@ func TestBuildAutomataFromRegexConcat(t *testing.T) {
 		{"baaa", "baaa"}}
 	for _, test := range tests {
 		got := BuildAutomataFromRegex(test.input)
+		fmt.Println(test.input)
 		fmt.Println(got)
 		if b, _ := got.Simulate(test.want); !b {
 			t.Errorf("BuildAutomataFromRegex(%q) = %q, want %q", test, got, test)
