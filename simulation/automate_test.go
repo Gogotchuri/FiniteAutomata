@@ -29,6 +29,7 @@ func TestBuildAutomataFromRegexForLiterals(t *testing.T) {
 	}{
 		{'a', "2 1 1\n1\n1 a 1\n0\n"},
 		{'b', "2 1 1\n1\n1 b 1\n0\n"},
+		{'c', "2 1 1\n1\n1 c 1\n0\n"},
 	}
 	for _, test := range tests {
 		got := BuildAutomataFromRegex(string(test.input))

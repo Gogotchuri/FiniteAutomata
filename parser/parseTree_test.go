@@ -20,9 +20,9 @@ func TestInsertConcatenation(t *testing.T) {
 		{"(a|b)a*(ba)|b", "(a|b).a*.(b.a)|b"},
 	}
 	for _, test := range tests {
-		got := InsertConcatenation(test.input)
+		got := insertConcatenation(test.input)
 		if got != test.want {
-			t.Errorf("InsertConcatenation(%q) = %q, want %q", test.input, got, test.want)
+			t.Errorf("insertConcatenation(%q) = %q, want %q", test.input, got, test.want)
 		}
 	}
 }

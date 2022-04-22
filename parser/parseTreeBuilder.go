@@ -3,7 +3,7 @@ package parser
 import "strings"
 
 func NewParseTree(regex string) *ParseTree {
-	regex = InsertConcatenation(regex)
+	regex = insertConcatenation(regex)
 	return createRegexParseTree(regex)
 }
 
@@ -25,10 +25,10 @@ func createRegexParseTree(regex string) *ParseTree {
 
 	pr := &ParseTree{}
 	// We shouldn't encounter operator as a first character
-	if IsIn(rune(regex[0]), operators) {
+	if isIn(rune(regex[0]), operators) {
 		panic("Unexpected token encountered")
 	}
-	if !IsIn(operator, operators) {
+	if !isIn(operator, operators) {
 		panic(regex + " Invalid regex") //Expected operator after literal
 	}
 
@@ -88,69 +88,15 @@ func removeOuterParenthesis(regex string) (string, bool) {
 	return regex[1 : len(regex)-1], true
 }
 
-func createParseTreeAfterParenthesis(regex string) *ParseTree {
-	pr := &ParseTree{}
-	findMatch := findMatchingParen(regex)
-	if findMatch >= len(regex)-1 {
-		pr = createRegexParseTree(regex[1 : len(regex)-1])
-	} else {
-		operator := rune(regex[findMatch+1])
-		if operator == '*' {
-			return createParseTreeForStar(regex[findMatch+2:], regex[1:findMatch])
-		} else {
-			pr.Value = rune(regex[findMatch+1])
-			pr.Left = createRegexParseTree(regex[1:findMatch])
-			pr.Right = createRegexParseTree(regex[findMatch+2:])
-		}
-	}
-	return pr
-}
-
-func findMatchingParen(regex string) int {
-	count := 1
-	for i := 1; i < len(regex); i++ {
-		if regex[i] == '(' {
-			count++
-		} else if regex[i] == ')' {
-			count--
-		}
-		if count == 0 {
-			return i
-		}
-	}
-	panic("Unmatched parenthesis")
-}
-
-//Create a parse tree for a star (unary operator)
-func createParseTreeForStar(regexAfterStar, leftSide string) *ParseTree {
-	pr := &ParseTree{}
-	pr.Value = '*'
-	pr.Left = createRegexParseTree(leftSide)
-	pr.Right = nil
-	if len(regexAfterStar) == 0 {
-		return pr
-	}
-	// a* type expression is taken already, we are expecting some kind of operator
-	if !IsIn(rune(regexAfterStar[0]), operators) {
-		panic("Invalid regex, expected operator after star") //Expected operator after literal
-	}
-	upper := &ParseTree{
-		Value: rune(regexAfterStar[0]),
-		Left:  pr,
-		Right: createRegexParseTree(regexAfterStar[1:]),
-	}
-	return upper
-}
-
-// InsertConcatenation Replaces all concatenations which are empty symbols with a single .
-func InsertConcatenation(regex string) string {
+// insertConcatenation Replaces all concatenations which are empty symbols with a single .
+func insertConcatenation(regex string) string {
 	regex = strings.ReplaceAll(regex, "()", Epsilon)
 	var prev, curr rune
 	res := string(regex[0])
 	for i := 1; i < len(regex); i++ {
 		prev = rune(regex[i-1])
 		curr = rune(regex[i])
-		if IsIn(prev, literals+")*") && IsIn(curr, literals+"(") {
+		if isIn(prev, literals+")*") && isIn(curr, literals+"(") {
 			res += "." + string(curr)
 		} else {
 			res += string(curr)
@@ -159,7 +105,7 @@ func InsertConcatenation(regex string) string {
 	return res
 }
 
-func IsIn(c rune, s string) bool {
+func isIn(c rune, s string) bool {
 	for _, r := range s {
 		if c == r {
 			return true
