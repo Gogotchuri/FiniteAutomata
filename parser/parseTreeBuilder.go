@@ -3,6 +3,9 @@ package parser
 import "strings"
 
 func NewParseTree(regex string) *ParseTree {
+	if regex == "" {
+		return nil
+	}
 	regex = insertConcatenation(regex)
 	return createRegexParseTree(regex)
 }

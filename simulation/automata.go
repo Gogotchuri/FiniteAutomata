@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"fmt"
+	"github.com/gogotchuri/FiniteAutomata/parser"
 )
 
 type Transition map[string]*StateSet
@@ -109,4 +110,13 @@ func (fa FiniteAutomata) getTransitions() string {
 	}
 
 	return res
+}
+
+func (fa FiniteAutomata) hasEpsilonTransitions() bool {
+	for _, state := range fa.States {
+		if fa.Transitions[state][parser.Epsilon] != nil && fa.Transitions[state][parser.Epsilon].Size() > 0 {
+			return true
+		}
+	}
+	return false
 }

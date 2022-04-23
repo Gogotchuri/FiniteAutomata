@@ -73,6 +73,9 @@ func BuildAutomataFromDescriptionSTDIn(r io.Reader) (*FiniteAutomata, error) {
 
 func BuildAutomataFromRegex(regex string) *FiniteAutomata {
 	parseTree := parser.NewParseTree(regex)
+	if parseTree == nil {
+		return nil
+	}
 	return buildAutomataFromParseTree(parseTree).Minimize()
 }
 

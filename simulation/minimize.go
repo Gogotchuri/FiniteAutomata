@@ -7,6 +7,10 @@ import (
 
 func (fa *FiniteAutomata) Minimize() *FiniteAutomata {
 	newFA := fa.removeEpsilonTransitions()
+	// Remove any remaining epsilon transitions
+	for newFA.hasEpsilonTransitions() {
+		newFA = newFA.removeEpsilonTransitions()
+	}
 	newFA.relabelStates()
 	newFA = newFA.removeUnreachableStates()
 	newFA.relabelStates()
