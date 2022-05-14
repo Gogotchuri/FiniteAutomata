@@ -21,6 +21,9 @@ func (fa *FiniteAutomata) Simulate(input string) (bool, string) {
 		}
 	}
 	fmt.Println(resString)
+	if len(resString) == 0 {
+		return true, ""
+	}
 	return wasAccepted[len(wasAccepted)-1], resString
 }
 

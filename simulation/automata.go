@@ -58,7 +58,7 @@ func (fa FiniteAutomata) String() string {
 	l1 := fmt.Sprintf("%d %d %d", len(fa.States), len(fa.AcceptingStates), transitionCount)
 	l2 := fa.getAcceptingStates()
 	l3 := fa.getTransitions()
-	return fmt.Sprintf("%s\n%s\n%s", l1, l2, l3)
+	return fmt.Sprintf("%s\n%s\n%s\n", l1, l2, l3)
 }
 
 func (fa FiniteAutomata) countTransitions() int {

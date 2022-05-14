@@ -169,6 +169,13 @@ func (fa *FiniteAutomata) RemoveState(state *State) *FiniteAutomata {
 }
 
 func (fa *FiniteAutomata) relabelStates() {
+	initialIndex := 0
+	for i, s := range fa.States {
+		if s == fa.InitialState {
+			initialIndex = i
+		}
+	}
+	fa.States[0], fa.States[initialIndex] = fa.States[initialIndex], fa.States[0]
 	for i, s := range fa.States {
 		s.ID = uint(i)
 		s.Name = fmt.Sprintf("q%d", i)

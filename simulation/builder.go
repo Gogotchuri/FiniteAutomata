@@ -10,6 +10,7 @@ import (
 
 func BuildAutomataFromDescriptionSTDIn(r io.Reader) (*FiniteAutomata, error) {
 	var n, a, t int
+	var err error
 	if _, err := fmt.Fscanf(r, "%d %d %d\n", &n, &a, &t); err != nil {
 		return nil, err
 	}
@@ -29,21 +30,34 @@ func BuildAutomataFromDescriptionSTDIn(r io.Reader) (*FiniteAutomata, error) {
 		if _, err := fmt.Fscanf(r, "%d", &s); err != nil {
 			return nil, err
 		}
+		if s < 0 || s >= n {
+			continue
+		}
 		states[s].IsAccepting = true
 		acceptStates[i] = states[s]
 	}
 	//Read transitions, so we have unified transition format
 	transitionStrings := make([]string, n)
 	inputReader := bufio.NewReader(r)
+	input, _ := inputReader.ReadString('\n')
+	for input == "\n" {
+		input, _ = inputReader.ReadString('\n')
+	}
 	for i := 0; i < n; i++ {
-		input, err := inputReader.ReadString('\n')
+		if input == "\n" {
+			input, err = inputReader.ReadString('\n')
+		}
 		if err != nil {
 			return nil, err
 		}
 		input = strings.Trim(input, " \n")
 		transitionStrings[i] = input
+		input = "\n"
 	}
 	//Parse transitions
+	if transitionStrings[0] == "" {
+		transitionStrings = transitionStrings[1:]
+	}
 	for i, line := range transitionStrings {
 		tokens := strings.Split(line, " ")
 		var tc int

@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -184,6 +185,17 @@ func TestBuildAutomataFromRegex(t *testing.T) {
 				"1u2j",
 			},
 		},
+		{
+			regex: "w6ax|(zn5)*|1u2j",
+			words: []string{
+				"",
+				"zn5",
+				"zn5zn5",
+				"zn5zn5zn5",
+				"w6ax",
+				"1u2j",
+			},
+		},
 		//03
 		{
 			regex: "(wmmt|o)*",
@@ -238,6 +250,12 @@ func TestBuildAutomataFromRegex(t *testing.T) {
 
 	for i, test := range tests {
 		got := BuildAutomataFromRegex(test.regex)
+		fmt.Println(got)
+		got, err := BuildAutomataFromDescriptionSTDIn(strings.NewReader(got.String()))
+		if err != nil {
+			t.Errorf("format error %s", err)
+			return
+		}
 		fmt.Println(test, "\n", got)
 		for _, word := range test.words {
 			if b, _ := got.Simulate(word); !b {
