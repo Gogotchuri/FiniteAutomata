@@ -16,7 +16,7 @@ func TestCreateAutomataForLiteral(t *testing.T) {
 	}
 	for _, test := range tests {
 		got := createAutomataForLiteral(test.input)
-		fmt.Println(got)
+		fmt.Println(got.String())
 		if got.String() != test.want {
 			t.Errorf("createAutomataForLiteral(%q) = %q, want %q", test.input, got, test.want)
 		}
